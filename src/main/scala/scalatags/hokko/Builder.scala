@@ -4,11 +4,10 @@ import _root_.hokko.control.Description
 import _root_.hokko.core.Engine
 import org.scalajs.dom
 
-import scala.collection.mutable
 import scala.scalajs.js
 import scala.scalajs.js.annotation.ScalaJSDefined
-import scalatags.hokko.raw.VirtualDom.VTreeChild
 import scalatags.generic
+import scalatags.hokko.raw.VirtualDom.VTreeChild
 
 class Builder {
 

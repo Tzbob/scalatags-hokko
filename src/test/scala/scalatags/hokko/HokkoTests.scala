@@ -1,18 +1,17 @@
 package scalatags.hokko
 
-import utest._
 import _root_.hokko.core._
 import org.scalajs.dom
+import utest._
 
-import scala.collection.mutable.ListBuffer
 import scalatags.Hokko.all._
-import scalatags.hokko.raw.{VNode, VirtualDom}
+import scalatags.hokko.raw.VirtualDom
 
 object HokkoTests extends TestSuite {
   def tests = TestSuite {
     'eventsource {
       val mouseEvents = Event.source[dom.MouseEvent]
-      val description = div(onclick := mouseEvents).render
+      val description = div(onclick := mouseEvents)(div).render
 
       var counter = 0
 

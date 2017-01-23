@@ -14,7 +14,7 @@ object VirtualDom extends js.Object {
 
   def diff[T](lhs: VTreeChild[T], rhs: VTreeChild[T]): Patch = js.native
 
-  def patch(rootNode: dom.raw.Node, patches: Patch): dom.raw.Node =
+  def patch(rootNode: dom.raw.Node, patches: Patch): dom.raw.Element =
     js.native
 
   @js.native
