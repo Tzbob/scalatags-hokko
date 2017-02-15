@@ -6,11 +6,11 @@ import org.scalajs.dom
 
 import scalatags.hokko.HokkoDomApp
 
-object PersistentAutocompleteTodo extends HokkoDomApp {
+object CalendarTodo extends HokkoDomApp {
   import htmldsl._
 
-  val date    = CBehavior.src("")
-  val message = CBehavior.src("")
+  val date    = CBehavior.source("")
+  val message = CBehavior.source("")
 
   val entry = message.map2(date) { (dateString, messageString) =>
     Entry(dateString, messageString)

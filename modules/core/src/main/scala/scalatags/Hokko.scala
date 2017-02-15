@@ -256,7 +256,7 @@ trait LowPriorityImplicits {
                                           Engine => VTreeChild[dom.Node]]
 
   implicit class TagWithSink[El <: dom.Element](tag: TTag[El]) {
-    def read[Result](src: CBehaviorSrc[Result],
+    def read[Result](src: CBehaviorSource[Result],
                      selector: El => Result): TTag[El] = {
       val sinkSetter = (el: El) => src.changeSource(Option(selector(el)))
 

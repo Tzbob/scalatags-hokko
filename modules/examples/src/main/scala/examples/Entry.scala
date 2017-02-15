@@ -1,6 +1,6 @@
 package examples
 
-import PersistentAutocompleteTodo.htmldsl._
+import CalendarTodo.htmldsl._
 import hokko.core.EventSource
 
 case class Entry(content: String, date: String, done: Boolean = false)
