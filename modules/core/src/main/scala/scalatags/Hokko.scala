@@ -2,17 +2,18 @@ package scalatags
 
 import java.util.Objects
 
-import _root_.hokko.control.Description
 import _root_.hokko.core._
 import org.scalajs.dom
 
 import scala.language.implicitConversions
 import scalatags.generic._
-import scalatags.hokko.Builder
+import scalatags.hokko.{Builder, Property}
 import scalatags.hokko.raw.VirtualDom.VTreeChild
 import scalatags.hokko.raw.{VText, VirtualDom}
 import scalatags.stylesheet.{StyleSheetFrag, StyleTree}
 import cats.syntax.applicative._
+
+import scala.scalajs.js
 
 /**
   * A Scalatags module that generates `Description[VNode]`s when the tags are
@@ -23,11 +24,11 @@ import cats.syntax.applicative._
   */
 object Hokko
     extends generic.Bundle[hokko.Builder,
-                           Description[VTreeChild[dom.Element]],
-                           Description[VTreeChild[dom.Node]]]
+                           Engine => VTreeChild[dom.Element],
+                           Engine => VTreeChild[dom.Node]]
     with Aliases[hokko.Builder,
-                 Description[VTreeChild[dom.Element]],
-                 Description[VTreeChild[dom.Node]]] {
+                 Engine => VTreeChild[dom.Element],
+                 Engine => VTreeChild[dom.Node]] {
 
   object attrs extends Hokko.Cap with Attrs
 
@@ -66,10 +67,10 @@ object Hokko
   }
 
   trait Cap extends Util with hokko.TagFactory { self =>
-    type ConcreteHtmlTag[T <: Description[VTreeChild[dom.Element]]] =
+    type ConcreteHtmlTag[T <: Engine => VTreeChild[dom.Element]] =
       TypedTag[T]
     type BaseTagType =
-      TypedTag[Description[VTreeChild[dom.Element]]]
+      TypedTag[Engine => VTreeChild[dom.Element]]
 
     protected[this] implicit def stringAttrX = new GenericAttr[String]
 
@@ -80,7 +81,7 @@ object Hokko
 
     implicit def UnitFrag(u: Unit): Hokko.StringFrag = new Hokko.StringFrag("")
 
-    def makeAbstractTypedTag[T <: Description[VTreeChild[dom.Element]]](
+    def makeAbstractTypedTag[T <: Engine => VTreeChild[dom.Element]](
         tag: String,
         void: Boolean,
         nameSpaceConfig: Namespace): TypedTag[T] =
@@ -92,7 +93,7 @@ object Hokko
 
       def applyTo(t: hokko.Builder): Unit = xs.foreach(_.applyTo(t))
 
-      def render: Description[VTreeChild[dom.Node]] = {
+      def render: Engine => VTreeChild[dom.Node] = {
         val builder = new hokko.Builder
         xs.foreach(x => builder.addChild(ev(x)))
         builder.make("DocumentFragment")
@@ -103,8 +104,8 @@ object Hokko
 
   trait Aggregate
       extends generic.Aggregate[hokko.Builder,
-                                Description[VTreeChild[dom.Element]],
-                                Description[VTreeChild[dom.Node]]] {
+                                Engine => VTreeChild[dom.Element],
+                                Engine => VTreeChild[dom.Node]] {
     implicit def ClsModifier(s: stylesheet.Cls): Modifier = new Modifier {
       def applyTo(t: hokko.Builder) = {
         t.addClassName(s.name)
@@ -142,32 +143,36 @@ object Hokko
 
     def raw(s: String) = RawFrag(s)
 
-    type Tag = Hokko.TypedTag[Description[VTreeChild[dom.Element]]]
+    type Tag = Hokko.TypedTag[_ <: Engine => VTreeChild[dom.Element]]
     val Tag = Hokko.TypedTag
   }
 
   object RawFrag extends Companion[RawFrag]
   case class RawFrag(v: String) extends hokko.Frag {
     Objects.requireNonNull(v)
-    def render: Description[VText] = new VText(v).pure[Description]
+    def render: Engine => VText = _ => new VText(v)
   }
 
   object StringFrag extends Companion[StringFrag]
   case class StringFrag(v: String) extends hokko.Frag {
     Objects.requireNonNull(v)
-    def render: Description[VText] = new VText(v).pure[Description]
+    def render: Engine => VText = _ => new VText(v)
   }
 
   class GenericAttr[T] extends AttrValue[T] {
-    def apply(t: hokko.Builder, a: Attr, v: T): Unit = {
-      t.updateAttribute(a.name, v.toString)
+    def apply(t: hokko.Builder, a: Attr, v: T): Unit = v match {
+      case Property(value) =>
+        t.updateProperty(a.name, value)
+      case _ =>
+        if (Property.defaultToProperty(a.name)) {
+          t.updateProperty(a.name, v.toString)
+        } else t.updateAttribute(a.name, v.toString)
     }
   }
 
   class GenericStyle[T] extends StyleValue[T] {
-    def apply(t: hokko.Builder, s: Style, v: T): Unit = {
+    def apply(t: hokko.Builder, s: Style, v: T): Unit =
       t.addStyle(s.cssName, v.toString)
-    }
   }
 
   class GenericPixelStyle[T](ev: StyleValue[T]) extends PixelStyleValue[T] {
@@ -179,13 +184,13 @@ object Hokko
     def apply(s: Style, v: T) = StylePair(s, v + "px", ev)
   }
 
-  case class TypedTag[Output <: Description[VTreeChild[dom.Element]]](
+  case class TypedTag[Output <: Engine => VTreeChild[dom.Element]](
       tag: String = "",
       modifiers: List[Seq[Modifier]],
       void: Boolean = false)
       extends generic.TypedTag[hokko.Builder,
                                Output,
-                               Description[VTreeChild[dom.Node]]]
+                               Engine => VTreeChild[dom.Node]]
       with hokko.Frag {
 
     protected[this] type Self = TypedTag[Output]
@@ -201,7 +206,7 @@ object Hokko
     }
 
     override def toString = {
-      val node = VirtualDom.create(render.compile().now())
+      val node = VirtualDom.create(render(Engine.compile()))
       if (node.nodeType == dom.Node.ELEMENT_NODE)
         node.asInstanceOf[dom.Element].outerHTML
       else node.textContent
@@ -212,22 +217,48 @@ object Hokko
 }
 
 trait LowPriorityImplicits {
-  implicit def evtSourceAttrValue[Ev <: dom.Event] =
-    new generic.AttrValue[hokko.Builder, EventSource[Ev]] {
-      def apply(t: Builder, a: Attr, v: EventSource[Ev]): Unit =
+
+  implicit class AttrExtension(a: Attr) {
+    def listen[R >: dom.Event](
+        src: EventSource[R]): AttrPair[hokko.Builder, EventSource[R]] =
+      this.listen(src, identity)
+
+    def listen[Result](
+        src: EventSource[Result],
+        f: dom.Event => Result): AttrPair[hokko.Builder, EventSource[Result]] =
+      AttrPair(
+        a,
+        src,
+        new generic.AttrValue[hokko.Builder, EventSource[Result]] {
+          def apply(t: Builder, a: Attr, v: EventSource[Result]): Unit =
+            t.addHandler(a.name) { engine => (event: dom.Event) =>
+              event.preventDefault()
+              engine.fire(Seq(v -> f(event)))
+            }
+        }
+      )
+  }
+
+  implicit def evtSourceFunAttrValue[Ev >: dom.Event, Result] =
+    new generic.AttrValue[hokko.Builder, (Ev => Result, EventSource[Result])] {
+      def apply(t: Builder,
+                a: Attr,
+                value: (Ev => Result, EventSource[Result])): Unit =
         t.addHandler(a.name) { engine => (event: dom.Event) =>
-          engine.fire(Seq(v -> event.asInstanceOf[Ev]))
+          event.preventDefault()
+          val (f, src) = value
+          engine.fire(Seq(src -> f(event)))
         }
     }
 
   type TTag[El <: dom.Element] = TypedTag[hokko.Builder,
-                                          Description[VTreeChild[El]],
-                                          Description[VTreeChild[dom.Node]]]
+                                          Engine => VTreeChild[El],
+                                          Engine => VTreeChild[dom.Node]]
 
   implicit class TagWithSink[El <: dom.Element](tag: TTag[El]) {
-    def read[Result](selector: El => Result,
-                     sink: CBehaviorSink[Result]): TTag[El] = {
-      val sinkSetter = (el: El) => sink.changeSource(Option(selector(el)))
+    def read[Result](src: CBehaviorSrc[Result],
+                     selector: El => Result): TTag[El] = {
+      val sinkSetter = (el: El) => src.changeSource(Option(selector(el)))
 
       tag.apply(new Modifier[Builder] {
         def applyTo(t: Builder) =

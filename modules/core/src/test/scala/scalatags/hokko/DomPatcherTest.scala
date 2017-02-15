@@ -1,5 +1,6 @@
 package scalatags.hokko
 
+import hokko.core.Engine
 import org.scalajs.dom
 import org.scalajs.dom.raw.Element
 import utest._
@@ -32,7 +33,7 @@ object DomPatcherTests extends TestSuite {
         ()
       }
 
-      val init = div.render.compile().now()
+      val init = div.render(Engine.compile())
 
       val patcher = new DomPatcher(init)
       val element = patcher.renderedElement
@@ -40,7 +41,7 @@ object DomPatcherTests extends TestSuite {
 
       checkInitial(element)
 
-      patcher.applyNewState(div(h1("Hello")).render.compile().now())
+      patcher.applyNewState(div(h1("Hello")).render(Engine.compile()))
 
       assert(element.tagName.toLowerCase() == "div")
       assert(element.children.length == 1)
@@ -62,10 +63,11 @@ object DomPatcherTests extends TestSuite {
 
       val vdomContainer = new Container(scalatags.Hokko)
       val patcher =
-        new DomPatcher(vdomContainer.divHeadingP.render.compile().now(),
+        new DomPatcher(vdomContainer.divHeadingP.render(Engine.compile()),
                        Some(element))
 
-      patcher.applyNewState(vdomContainer.divHeadingNoP.render.compile().now())
+      patcher.applyNewState(
+        vdomContainer.divHeadingNoP.render(Engine.compile()))
       assert(element.childElementCount == 1)
     }
 

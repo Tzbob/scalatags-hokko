@@ -1,6 +1,5 @@
 package scalatags.hokko
 
-import _root_.hokko.control.Description
 import _root_.hokko.core.Engine
 import org.scalajs.dom
 
@@ -13,16 +12,22 @@ class Builder {
 
   val handlers   = js.Dictionary.empty[Engine => js.Function1[dom.Event, Unit]]
   val attributes = js.Dictionary.empty[js.Any]
+  val properties = js.Dictionary.empty[js.Any]
   val style      = js.Dictionary.empty[String]
 
   val sinkSetter = js.Array[dom.Node => Unit]()
   val classNames = js.Array[String]()
-  val children   = js.Array[generic.Frag[_, Description[VTreeChild[dom.Node]]]]()
+  val children   = js.Array[generic.Frag[_, Engine => VTreeChild[dom.Node]]]()
 
-  def addChild(f: generic.Frag[_, Description[VTreeChild[dom.Node]]]): Unit =
+  def addChild(f: generic.Frag[_, Engine => VTreeChild[dom.Node]]): Unit = {
     children.push(f)
+    ()
+  }
 
-  def addClassName(name: String): Unit = classNames.push(name)
+  def addClassName(name: String): Unit = {
+    classNames.push(name)
+    ()
+  }
 
   def makeClassNameString: Option[String] = {
     val namesOpt =
@@ -41,6 +46,9 @@ class Builder {
   def updateAttribute(key: String, value: js.Any): Unit =
     attributes.update(key, value)
 
+  def updateProperty(key: String, value: js.Any): Unit =
+    properties.update(key, value)
+
   def addStyle(key: String, value: String): Unit =
     style.update(key, value)
 
@@ -48,40 +56,60 @@ class Builder {
       f: Engine => js.Function1[dom.Event, Unit]): Unit =
     handlers.update(key, f)
 
-  def addSinkSetter(setter: dom.Node => Unit): Unit =
+  def addSinkSetter(setter: dom.Node => Unit): Unit = {
     sinkSetter.push(setter)
+    ()
+  }
 
-  def make(tag: String): Description[raw.VNode[dom.Node]] = {
+  def make(tag: String): Engine => raw.VNode[dom.Node] = {
     import cats.instances.all._
     import cats.syntax.all._
 
     import js.JSConverters._
 
     val rendered          = children.map(_.render).toList
-    val sequencedChildren = rendered.sequence.map(x => Option(x).orUndefined)
+    val sequencedChildren = rendered.sequenceU.map(x => Option(x).orUndefined)
 
     makeClassNameString.foreach(this.updateAttribute("class", _))
 
-    sequencedChildren.mapEngine { (engine, children) =>
-      val props =
-        js.Dictionary[js.Any]("attributes" -> attributes, "style" -> style)
+    engine =>
+      val children = sequencedChildren(engine)
+
+      if (properties.contains("value"))
+        properties.update("value", new SetHook(properties("value").toString))
+
+      properties.update("attributes", attributes)
+
+      if (!style.isEmpty)
+        properties.update("style", style)
 
       handlers.foreach {
         case (name, f) =>
-          props.update(name, f(engine))
+          properties.update(name, f(engine))
       }
 
-      props.update("hokko-hook", new Hook(n => sinkSetter.foreach(_(n))))
+      if (!sinkSetter.isEmpty)
+        properties
+          .update("hokko-hook", new Hook(n => sinkSetter.foreach(_(n))))
 
-      new raw.VNode(tag, Option(props).orUndefined, children.map(_.toJSArray))
-    }
+      new raw.VNode(tag,
+                    Option(properties).orUndefined,
+                    children.map(_.toJSArray))
   }
 
   @ScalaJSDefined
-  class Hook(f: dom.Node => Unit) extends js.Object {
+  class Hook(f: dom.Node => Unit)
+      extends js.Object {
     def hook(node: dom.Node,
              propertyName: String,
              previousValue: js.UndefOr[js.Object]): Unit =
       f(node)
   }
+
+  @ScalaJSDefined
+  class SetHook(v: String)
+      extends Hook(node => {
+        val dynamicNode = node.asInstanceOf[js.Dynamic]
+        if (dynamicNode.value != v) dynamicNode.value = v
+      })
 }

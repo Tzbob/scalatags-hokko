@@ -1,7 +1,7 @@
 package scalatags
 package hokko
 
-import _root_.hokko.control.Description
+import _root_.hokko.core.Engine
 import org.scalajs.dom
 import org.scalajs.dom.html
 
@@ -9,8 +9,8 @@ import scalatags.hokko.raw.VirtualDom.VTreeChild
 
 trait Tags2
     extends generic.Tags2[Builder,
-                          Description[VTreeChild[dom.Element]],
-                          Description[VTreeChild[dom.Node]]]
+                          Engine => VTreeChild[dom.Element],
+                          Engine => VTreeChild[dom.Node]]
     with TagFactory {
   // Document Metadata
   lazy val title = treeTypedTag[html.Title]("title")

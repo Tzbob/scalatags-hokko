@@ -1,19 +1,12 @@
-enablePlugins(ScalaJSPlugin)
-
 scalaVersion in ThisBuild := "2.11.8"
-
 scalafmtConfig in ThisBuild := Some(file(".scalafmt.conf"))
 
-organization := "be.tzbob"
-name := "scalatags-hokko"
-version := "0.1-SNAPSHOT"
+organization in ThisBuild := "be.tzbob"
+version in ThisBuild := "0.1-SNAPSHOT"
 
-requiresDOM := true
-
-scalacOptions ++= Seq(
+scalacOptions in ThisBuild ++= Seq(
   "-encoding",
   "UTF-8",
-  "-target:jvm-1.6",
   "-feature",
   "-deprecation",
   "-Xlint",
@@ -22,20 +15,31 @@ scalacOptions ++= Seq(
   "-Ywarn-dead-code",
   "-Ywarn-numeric-widen",
   "-Ywarn-value-discard",
-  "-Xfuture",
-  "-language:higherKinds",
-  "-language:existentials"
+  "-language:higherKinds"
 )
 
-libraryDependencies ++= Seq(
-  "be.tzbob"      %%% "hokko"     % "0.4.0-SNAPSHOT",
-  "org.typelevel" %%% "cats"      % "0.7.2",
-  "com.lihaoyi"   %%% "scalatags" % "0.6.0",
-  "com.lihaoyi"   %%% "utest"     % "0.3.1" % "test"
-)
+lazy val hokko =
+  Project(id = "scalatags-hokko", base = file("modules/core"))
+    .settings(
+      name := "scalatags-hokko",
+      requiresDOM := true,
+      libraryDependencies ++= Seq(
+        "be.tzbob"      %%% "hokko"     % "0.4.0-SNAPSHOT",
+        "org.typelevel" %%% "cats"      % "0.7.2",
+        "com.lihaoyi"   %%% "scalatags" % "0.6.0",
+        "com.lihaoyi"   %%% "utest"     % "0.3.1" % "test"
+      ),
+      jsDependencies ++= Seq(
+        "org.webjars.bower" % "virtual-dom" % "2.1.1" / "virtual-dom.js"
+      ),
+      testFrameworks += new TestFramework("utest.runner.Framework")
+    )
+    .enablePlugins(ScalaJSPlugin)
 
-jsDependencies ++= Seq(
-  "org.webjars.bower" % "virtual-dom" % "2.1.1" / "virtual-dom.js"
-)
-
-testFrameworks += new TestFramework("utest.runner.Framework")
+lazy val examples =
+  Project(id = "examples", base = file("modules/examples"))
+    .enablePlugins(ScalaJSPlugin)
+    .settings(
+      persistLauncher := true
+    )
+    .dependsOn(hokko)

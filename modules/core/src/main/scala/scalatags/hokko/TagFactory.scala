@@ -1,6 +1,6 @@
 package scalatags.hokko
 
-import hokko.control.Description
+import hokko.core.Engine
 import org.scalajs.dom
 
 import scalatags.Escaping
@@ -10,33 +10,31 @@ import scalatags.hokko.raw.VirtualDom.VTreeChild
 
 trait TagFactory
     extends scalatags.generic.Util[Builder,
-                                   Description[VTreeChild[dom.Element]],
-                                   Description[VTreeChild[dom.Node]]] {
+                                   Engine => VTreeChild[dom.Element],
+                                   Engine => VTreeChild[dom.Node]] {
   def nTag(s: String, void: Boolean = false)
-    : ConcreteHtmlTag[Description[raw.VNode[dom.Element]]] = {
+    : ConcreteHtmlTag[Engine => raw.VNode[dom.Element]] = {
     typedTag(s, void)
   }
 
   def treeTypedTag[T <: dom.Element](
       s: String,
-      void: Boolean = false): ConcreteHtmlTag[Description[VNode[T]]] = {
+      void: Boolean = false): ConcreteHtmlTag[Engine => VNode[T]] = {
     typedTag(s, void)
   }
 
   def typedTag[T <: VTreeChild[dom.Element]](
       s: String,
-      void: Boolean = false): ConcreteHtmlTag[Description[T]] = {
+      void: Boolean = false): ConcreteHtmlTag[Engine => T] = {
 
     if (!Escaping.validTag(s))
       throw new IllegalArgumentException(
         s"Illegal tag name: $s is not a valid XML tag name")
-    makeAbstractTypedTag[Description[T]](s,
-                                         void,
-                                         Namespace.htmlNamespaceConfig)
+    makeAbstractTypedTag[Engine => T](s, void, Namespace.htmlNamespaceConfig)
   }
 
   def tag(s: String, void: Boolean = false)
-    : ConcreteHtmlTag[Description[VTreeChild[dom.Element]]] = {
+    : ConcreteHtmlTag[Engine => VTreeChild[dom.Element]] = {
     typedTag(s, void)
   }
 }

@@ -78,7 +78,6 @@ trait PerfTests extends TestSuite{
 
       TestUtil.strCheck(calc(), PerfTests.expected)
       'performance{
-        println("Benchmarking " + this.name)
         val start = System.currentTimeMillis()
         var i = 0
         val d = 10000
