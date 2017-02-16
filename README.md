@@ -23,24 +23,25 @@ Compiling ```scalatags-hokko```:
 
 ```
 git clone https://github.com/Tzbob/scalatags-hokko.git 
-git checkout fb67786b902fd79314e52c4351ea95a1ff4079d7
+cd scalatags-hokko
+git checkout 21525fb001b63243afc2260d5890b4ba899c3310
 
-cd hokko
 sbt compile
 ```
 
 ## Running the Example
 
 An example application is available in ```modules/examples```.
-You can use SBT to compile the example:
+You can use SBT to prepare the example:
 
 ```
 sbt examples/fastOptJS
 ```
 This compiles the example to a Javascript program. 
-An HTML document to test the program is located in ```modules/examples/src/main/resources/index.html```:
+An HTML document to test the program is located in ```modules/examples/html/resources/index.html```:
 
 ```
-$BROWSER modules/examples/src/main/resources/index.html
+cd modules/examples/html
+$BROWSER index.html
 ```
 
