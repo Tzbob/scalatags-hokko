@@ -1,8 +1,6 @@
 package examples
 
-import cats.data.Ior
 import hokko.core.{CBehavior, DBehavior, Event}
-import org.scalajs.dom
 
 import scalatags.hokko.HokkoDomApp
 
