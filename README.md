@@ -1,7 +1,7 @@
 # scalatags-hokko
 
 ```scalatags-hokko``` and its dependencies are not yet available on maven central, for now you should manually publish them locally.
-From here on we assume an installation of SBT, guidelines can be found here: TODO
+From here on we assume an installation of SBT, guidelines can be found here: http://www.scala-sbt.org/download.html
 
 
 ## Compiling scalatags-hokko
@@ -44,4 +44,3 @@ An HTML document to test the program is located in ```modules/examples/html/reso
 cd modules/examples/html
 $BROWSER index.html
 ```
-
