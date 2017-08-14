@@ -2,15 +2,13 @@ package scalatags
 package hokko
 
 import _root_.hokko.core.Engine
+import snabbdom.VNode
 import org.scalajs.dom
 
 import scalatags.generic.Namespace
-import scalatags.hokko.raw.VirtualDom.VTreeChild
 
 trait SvgTags
-    extends generic.SvgTags[Builder,
-                            Engine => VTreeChild[dom.Element],
-                            Engine => VTreeChild[dom.Node]]
+    extends generic.SvgTags[Builder, Engine => VNode, Engine => VNode]
     with TagFactory {
   implicit lazy val svgNamespaceConfig = Namespace.svgNamespaceConfig
 

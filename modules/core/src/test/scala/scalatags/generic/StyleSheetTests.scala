@@ -13,6 +13,8 @@ abstract class StyleSheetTests[Builder, Output <: FragT, FragT](
 
   val pkg = "scalatags-generic-StyleSheetTests"
   object Simple extends StyleSheet {
+    initStyleSheet()
+
     val x = cls(
       backgroundColor := "red",
       height := 125
@@ -25,6 +27,7 @@ abstract class StyleSheetTests[Builder, Output <: FragT, FragT](
   }
 
   object Inline extends StyleSheet {
+    initStyleSheet()
     def w = cls(
       &.hover(
         backgroundColor := "red"
@@ -40,6 +43,7 @@ abstract class StyleSheetTests[Builder, Output <: FragT, FragT](
   }
 
   object Cascade extends CascadingStyleSheet {
+    initStyleSheet()
     def y = cls()
     def x = cls(
       a(
@@ -64,6 +68,7 @@ abstract class StyleSheetTests[Builder, Output <: FragT, FragT](
   }
 
   object Custom extends CascadingStyleSheet {
+    initStyleSheet()
     override def customSheetName = Some("CuStOm")
     def x = cls(
       backgroundColor := "red",

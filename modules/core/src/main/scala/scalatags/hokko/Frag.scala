@@ -1,13 +1,11 @@
 package scalatags.hokko
 
+import snabbdom.VNode
 import hokko.core.Engine
-import org.scalajs.dom
 
 import scalatags.generic
-import scalatags.hokko.raw.VirtualDom
-import scalatags.hokko.raw.VirtualDom.{Patch, VTreeChild}
 
-trait Frag extends generic.Frag[Builder, Engine => VTreeChild[dom.Node]] {
-  def render: Engine => VTreeChild[dom.Node]
+trait Frag extends generic.Frag[Builder, Engine => VNode] {
+  def render: Engine => VNode
   override def applyTo(t: Builder): Unit = t.addChild(this)
 }

@@ -3,6 +3,7 @@ package scalatags.hokko
 import _root_.hokko.core._
 import hokko.control.Description
 import org.scalajs.dom
+import org.scalajs.dom.raw.HTMLElement
 import utest._
 
 import scala.scalajs.js
@@ -22,17 +23,10 @@ object HokkoTests extends TestSuite {
       val domPatcher = new DomPatcher(
         div(onclick.listen(mouseEvents))(div).render(network.engine)
       )
-      val element = domPatcher.renderedElement
-
-      dom.document.body.appendChild(element)
+      val element = domPatcher.parent.firstElementChild
 
       def click(el: dom.html.Element) = {
-        // JSDom does not support .onclick properties, we mimic it by
-        // manually calling onclick
-        el.onclick(
-          js.Dynamic
-            .literal(preventDefault = () => ())
-            .asInstanceOf[dom.MouseEvent])
+        el.click()
       }
 
       assert(counter == 0)
@@ -43,16 +37,14 @@ object HokkoTests extends TestSuite {
     }
 
     'behaviorsink {
-      val src = CBehavior.src("default value")
+      val src = CBehavior.source("default value")
 
-      val description = Description.listen(src)
+      val description = Description.read(src)
       val network     = description.compile()
 
       val domPatcher = new DomPatcher(
-        textarea.read(src, _.tagName).render(network.engine)
+        textarea.read(src, (_: HTMLElement).tagName).render(network.engine)
       )
-      val element = domPatcher.renderedElement
-
       assert(network.now() == "TEXTAREA")
     }
   }

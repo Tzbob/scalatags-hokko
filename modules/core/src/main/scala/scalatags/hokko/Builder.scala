@@ -2,24 +2,26 @@ package scalatags.hokko
 
 import _root_.hokko.core.Engine
 import org.scalajs.dom
+import org.scalajs.dom.{Element, Event}
+import snabbdom.VNode
 
 import scala.scalajs.js
-import scala.scalajs.js.annotation.ScalaJSDefined
+import scala.scalajs.js.{Array, Function1, UndefOr, WrappedDictionary, |}
 import scalatags.generic
-import scalatags.hokko.raw.VirtualDom.VTreeChild
 
 class Builder {
 
   val handlers   = js.Dictionary.empty[Engine => js.Function1[dom.Event, Unit]]
-  val attributes = js.Dictionary.empty[js.Any]
-  val properties = js.Dictionary.empty[js.Any]
-  val style      = js.Dictionary.empty[String]
+  val attributes = js.Dictionary.empty[Boolean | String]
+  val properties = js.Dictionary.empty[Any]
+  val style      = js.Dictionary.empty[Any]
 
-  val sinkSetter = js.Array[dom.Node => Unit]()
-  val classNames = js.Array[String]()
-  val children   = js.Array[generic.Frag[_, Engine => VTreeChild[dom.Node]]]()
+  val sinkSetter   = js.Array[dom.Node => Unit]()
+  val sinkUnSetter = js.Array[dom.Node => Unit]()
+  val classNames   = js.Array[String]()
+  val children     = js.Array[generic.Frag[_, Engine => VNode]]()
 
-  def addChild(f: generic.Frag[_, Engine => VTreeChild[dom.Node]]): Unit = {
+  def addChild(f: generic.Frag[_, Engine => VNode]): Unit = {
     children.push(f)
     ()
   }
@@ -43,7 +45,7 @@ class Builder {
       .orElse(namesOpt)
   }
 
-  def updateAttribute(key: String, value: js.Any): Unit =
+  def updateAttribute(key: String, value: Boolean | String): Unit =
     attributes.update(key, value)
 
   def updateProperty(key: String, value: js.Any): Unit =
@@ -61,55 +63,52 @@ class Builder {
     ()
   }
 
-  def make(tag: String): Engine => raw.VNode[dom.Node] = {
+  def addSinkUnSetter(unSetter: dom.Node => Unit): Unit = {
+    sinkUnSetter.push(unSetter)
+    ()
+  }
+
+  def make(tag: String): Engine => VNode = {
     import cats.instances.all._
     import cats.syntax.all._
 
     import js.JSConverters._
 
-    val rendered          = children.map(_.render).toList
-    val sequencedChildren = rendered.sequenceU.map(x => Option(x).orUndefined)
-
     makeClassNameString.foreach(this.updateAttribute("class", _))
 
+    val renderedChildren: Array[(Engine) => VNode] = children.map(_.render)
+
     engine =>
-      val children = sequencedChildren(engine)
+      val jsChildren = renderedChildren.map(_(engine)).toJSArray
+      val handlersWithoutOn: js.Dictionary[js.Function1[Event, Unit]] =
+        handlers.map {
+          case (name, fn) =>
+            val nameWithoutOn = name.drop(2)
+            nameWithoutOn -> fn(engine)
+        }.toJSDictionary
 
-      if (properties.contains("value"))
-        properties.update("value", new SetHook(properties("value").toString))
+      val hooks = js.Dynamic.literal(
+        insert = (vnode: VNode) => {
+          sinkSetter.foreach { f =>
+            vnode.elm.toOption.foreach(n => f(n.asInstanceOf[dom.Node]))
+          }
+        },
 
-      properties.update("attributes", attributes)
+        destroy = (vnode: VNode) => {
+          sinkUnSetter.foreach { f =>
+            vnode.elm.toOption.foreach(n => f(n.asInstanceOf[dom.Node]))
+          }
+        }
+      )
 
-      if (!style.isEmpty)
-        properties.update("style", style)
+      val data = js.Dynamic.literal(
+        attrs = attributes,
+        props = properties,
+        style = this.style,
+        on = handlersWithoutOn,
+        hook = hooks
+      )
 
-      handlers.foreach {
-        case (name, f) =>
-          properties.update(name, f(engine))
-      }
-
-      if (!sinkSetter.isEmpty)
-        properties
-          .update("hokko-hook", new Hook(n => sinkSetter.foreach(_(n))))
-
-      new raw.VNode(tag,
-                    Option(properties).orUndefined,
-                    children.map(_.toJSArray))
+      snabbdom.h(tag, data, jsChildren)
   }
-
-  @ScalaJSDefined
-  class Hook(f: dom.Node => Unit)
-      extends js.Object {
-    def hook(node: dom.Node,
-             propertyName: String,
-             previousValue: js.UndefOr[js.Object]): Unit =
-      f(node)
-  }
-
-  @ScalaJSDefined
-  class SetHook(v: String)
-      extends Hook(node => {
-        val dynamicNode = node.asInstanceOf[js.Dynamic]
-        if (dynamicNode.value != v) dynamicNode.value = v
-      })
 }

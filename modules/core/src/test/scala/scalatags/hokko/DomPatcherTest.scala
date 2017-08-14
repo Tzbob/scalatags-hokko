@@ -24,8 +24,17 @@ class Container[B, Output <: FragT, FragT](
 object DomPatcherTests extends TestSuite {
 
   def tests = TestSuite {
+    import scalatags.Hokko.all._
+    "render anchor" - {
+      val url    = "https://www.google.com/"
+      val anchor = a(href := url, "Google").render(Engine.compile())
+
+      val parent     = new DomPatcher(anchor).parent
+      val htmlString = parent.innerHTML
+      assert(htmlString == """<a href="https://www.google.com/">Google</a>""")
+    }
+
     "add and remove appropriate tags when new state is applied" - {
-      import scalatags.Hokko.all._
 
       def checkInitial(element: Element): Unit = {
         assert(element.tagName.toLowerCase == "div")
@@ -36,8 +45,7 @@ object DomPatcherTests extends TestSuite {
       val init = div.render(Engine.compile())
 
       val patcher = new DomPatcher(init)
-      val element = patcher.renderedElement
-      dom.document.body.appendChild(element)
+      val element = patcher.parent.firstElementChild
 
       checkInitial(element)
 
@@ -57,8 +65,11 @@ object DomPatcherTests extends TestSuite {
         ()
       }
 
+      val parent = dom.document.createElement("div")
+
       val jsContainer = new Container(scalatags.JsDom)
       val element     = jsContainer.divHeadingP.render
+      parent.appendChild(element)
       checkInitial(element)
 
       val vdomContainer = new Container(scalatags.Hokko)
@@ -68,6 +79,7 @@ object DomPatcherTests extends TestSuite {
 
       patcher.applyNewState(
         vdomContainer.divHeadingNoP.render(Engine.compile()))
+
       assert(element.childElementCount == 1)
     }
 

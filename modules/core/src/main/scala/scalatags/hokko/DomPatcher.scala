@@ -1,33 +1,45 @@
 package scalatags.hokko
 
 import org.scalajs.dom
+import snabbdom.{Snabbdom, VNode}
+import org.scalajs.dom.{Element, Node}
 
-import scalatags.hokko.raw.VirtualDom
-import scalatags.hokko.raw.VirtualDom.VTreeChild
+import scala.scalajs.js
 
-/**
-  * A utility class to patch the DOM with Virtual Elements
-  * @param initialVDom the initial virtual dom element used to compute
-  *                    consequent diffs
-  * @param preRenderedElement an optional pre-rendered element, if supplied
-  *                           this element should be the identical DOM
-  *                           representation of the generated 'initialVDom'
-  */
-class DomPatcher(initialVDom: VTreeChild[dom.Element],
-                 preRenderedElement: Option[dom.Element] = None) {
-  val renderedElement =
-    preRenderedElement.getOrElse(VirtualDom.create(initialVDom))
-  private[this] var previousState = initialVDom
+class DomPatcher(initialVDom: VNode, targetOpt: Option[Element] = None) {
+  private[this] val target =
+    targetOpt
+      .map { x =>
+        x.innerHTML = ""; x
+      }
+      .getOrElse(DomPatcher
+        .createParentedTarget())
 
-  private[this] def diffAndSwap(
-      vdom: VTreeChild[dom.Element]): VirtualDom.Patch = {
-    val patch = VirtualDom.diff(previousState, vdom)
-    previousState = vdom
-    patch
+  val parent: Element = {
+    val dynamic = target.asInstanceOf[js.Dynamic]
+    dynamic.parentElement.asInstanceOf[dom.Element]
   }
 
-  def applyNewState(vdom: VTreeChild[dom.Element]): dom.Element = {
-    val patch = diffAndSwap(vdom)
-    VirtualDom.patch(renderedElement, patch)
+  private[this] var oldVDom: VNode = DomPatcher.patch(target, initialVDom)
+
+  def applyNewState(vdom: VNode): Unit =
+    oldVDom = DomPatcher.patch(oldVDom, vdom)
+}
+
+object DomPatcher {
+  def createParentedTarget(): Element = {
+    def mkDiv  = dom.document.createElement("div")
+    val parent = mkDiv
+    val target = mkDiv
+    parent.appendChild(target)
+    target
   }
+
+  val patch =
+    Snabbdom.init(
+      js.Array(snabbdom.`class`,
+               snabbdom.props,
+               snabbdom.attributes,
+               snabbdom.style,
+               snabbdom.eventlisteners))
 }

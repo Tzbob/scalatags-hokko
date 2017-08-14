@@ -22,7 +22,7 @@ trait HokkoDomApp extends JSApp {
       }
     }
 
-    domPatcher.renderedElement
+    domPatcher.parent
   }
 
   def main(): Unit = {
