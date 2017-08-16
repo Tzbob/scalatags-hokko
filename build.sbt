@@ -1,4 +1,4 @@
-resolvers += "Sonatype OSS Snapshots" at
+resolvers in ThisBuild += "Sonatype OSS Snapshots" at
   "https://oss.sonatype.org/content/repositories/snapshots"
 
 organization in ThisBuild := "be.tzbob"
