@@ -43,7 +43,7 @@ object HokkoTests extends TestSuite {
       val network     = description.compile()
 
       val domPatcher = new DomPatcher(
-        textarea.read(src, (_: HTMLElement).tagName).render(network.engine)
+        textarea.read(src, (_: dom.Element).tagName).render(network.engine)
       )
       assert(network.now() == "TEXTAREA")
     }

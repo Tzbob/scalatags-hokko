@@ -4,7 +4,7 @@ resolvers in ThisBuild += "Sonatype OSS Snapshots" at
 organization in ThisBuild := "be.tzbob"
 scalaVersion in ThisBuild := "2.12.1"
 crossScalaVersions in ThisBuild := Seq("2.11.8", "2.12.1")
-version in ThisBuild := "0.3.0-SNAPSHOT"
+version in ThisBuild := "0.3.1-SNAPSHOT"
 
 scalacOptions in ThisBuild ++= Seq(
   "-encoding",
@@ -55,6 +55,7 @@ lazy val root =
 
 lazy val hokko =
   Project(id = "scalatags-hokko", base = file("modules/core"))
+    .settings(publishSettings: _*)
     .settings(
       name := "scalatags-hokko",
       requiresDOM in Test := true,

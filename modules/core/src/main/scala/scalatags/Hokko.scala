@@ -201,62 +201,60 @@ object Hokko
 
   }
 
-}
+  trait LowPriorityImplicits {
 
-trait LowPriorityImplicits {
+    implicit class AttrExtension(a: Attr) {
+      def listen[R >: dom.Event](src: EventSource[R])
+        : generic.AttrPair[hokko.Builder, EventSource[R]] =
+        this.listen(src, identity)
 
-  implicit class AttrExtension(a: Attr) {
-    def listen[R >: dom.Event](
-        src: EventSource[R]): AttrPair[hokko.Builder, EventSource[R]] =
-      this.listen(src, identity)
-
-    def listen[Result](
-        src: EventSource[Result],
-        f: dom.Event => Result): AttrPair[hokko.Builder, EventSource[Result]] =
-      AttrPair(
-        a,
-        src,
-        new generic.AttrValue[hokko.Builder, EventSource[Result]] {
-          def apply(t: Builder, a: Attr, v: EventSource[Result]): Unit =
-            t.addHandler(a.name) { engine => (event: dom.Event) =>
-              event.preventDefault()
-              engine.fire(Seq(v -> f(event)))
-            }
-        }
-      )
-  }
-
-  implicit def evtSourceFunAttrValue[Ev >: dom.Event, Result] =
-    new generic.AttrValue[hokko.Builder, (Ev => Result, EventSource[Result])] {
-      def apply(t: Builder,
-                a: Attr,
-                value: (Ev => Result, EventSource[Result])): Unit =
-        t.addHandler(a.name) { engine => (event: dom.Event) =>
-          event.preventDefault()
-          val (f, src) = value
-          engine.fire(Seq(src -> f(event)))
-        }
+      def listen[Result](src: EventSource[Result], f: dom.Event => Result)
+        : generic.AttrPair[hokko.Builder, EventSource[Result]] =
+        AttrPair(
+          a,
+          src,
+          new generic.AttrValue[hokko.Builder, EventSource[Result]] {
+            def apply(t: Builder, a: Attr, v: EventSource[Result]): Unit =
+              t.addHandler(a.name) { engine => (event: dom.Event) =>
+                event.preventDefault()
+                engine.fire(Seq(v -> f(event)))
+              }
+          }
+        )
     }
 
-  type TTag[El <: dom.Element] =
-    TypedTag[hokko.Builder, Engine => VNode, Engine => VNode]
-
-  implicit class TagWithSink[El <: dom.Element](tag: TTag[El]) {
-    def read[Result](src: CBehaviorSource[Result],
-                     selector: El => Result): TTag[El] = {
-      val sinkSetter   = (el: El) => src.changeSource(Option(selector(el)))
-      val sinkUnSetter = (el: El) => src.unSet()
-
-      tag.apply(new Modifier[Builder] {
-        def applyTo(t: Builder) = {
-          t.addSinkSetter { (n: dom.Node) =>
-            sinkSetter(n.asInstanceOf[El])
+    implicit def evtSourceFunAttrValue[Ev >: dom.Event, Result] =
+      new generic.AttrValue[hokko.Builder, (Ev => Result, EventSource[Result])] {
+        def apply(t: Builder,
+                  a: Attr,
+                  value: (Ev => Result, EventSource[Result])): Unit =
+          t.addHandler(a.name) { engine => (event: dom.Event) =>
+            event.preventDefault()
+            val (f, src) = value
+            engine.fire(Seq(src -> f(event)))
           }
-          t.addSinkUnSetter { (n: dom.Node) =>
-            sinkUnSetter(n.asInstanceOf[El])
+      }
+
+    type TTag = TypedTag[Engine => VNode]
+
+    implicit class TagWithSink(tag: TTag) {
+      def read[Result](src: CBehaviorSource[Result],
+                       selector: dom.Element => Result): TTag = {
+        val sinkSetter = (el: dom.Element) =>
+          src.changeSource(Option(selector(el)))
+        val sinkUnSetter = (el: dom.Element) => src.unSet()
+
+        tag.apply(new Modifier {
+          def applyTo(t: Builder) = {
+            t.addSinkSetter { (n: dom.Node) =>
+              sinkSetter(n.asInstanceOf[dom.Element])
+            }
+            t.addSinkUnSetter { (n: dom.Node) =>
+              sinkUnSetter(n.asInstanceOf[dom.Element])
+            }
           }
-        }
-      })
+        })
+      }
     }
   }
 }
