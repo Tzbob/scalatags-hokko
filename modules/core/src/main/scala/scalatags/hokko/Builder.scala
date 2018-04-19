@@ -2,24 +2,28 @@ package scalatags.hokko
 
 import _root_.hokko.core.Engine
 import org.scalajs.dom
-import org.scalajs.dom.{Element, Event}
+import org.scalajs.dom.Event
 import snabbdom.VNode
 
 import scala.scalajs.js
-import scala.scalajs.js.{Array, Function1, UndefOr, WrappedDictionary, |}
+import scala.scalajs.js.{Array, |}
 import scalatags.generic
 
 class Builder {
 
-  val handlers   = js.Dictionary.empty[Engine => js.Function1[dom.Event, Unit]]
-  val attributes = js.Dictionary.empty[Boolean | String]
-  val properties = js.Dictionary.empty[Any]
-  val style      = js.Dictionary.empty[Any]
+  private[this] val handlers =
+    js.Dictionary.empty[Engine => js.Function1[dom.Event, Unit]]
+  private[this] val attributes = js.Dictionary.empty[Boolean | String]
+  private[this] val properties = js.Dictionary.empty[Any]
+  private[this] val style      = js.Dictionary.empty[Any]
 
-  val sinkSetter   = js.Array[dom.Node => Unit]()
-  val sinkUnSetter = js.Array[dom.Node => Unit]()
-  val classNames   = js.Array[String]()
-  val children     = js.Array[generic.Frag[_, Engine => VNode]]()
+  private[this] val sinkSetter   = js.Array[dom.Node => Unit]()
+  private[this] val sinkUnSetter = js.Array[dom.Node => Unit]()
+  private[this] val classNames   = js.Array[String]()
+  private[this] val children     = js.Array[generic.Frag[_, Engine => VNode]]()
+
+  lazy val escapedStyle: Map[String, String] =
+    style.toMap.mapValues(v => s" $v;")
 
   def addChild(f: generic.Frag[_, Engine => VNode]): Unit = {
     children.push(f)
@@ -69,14 +73,18 @@ class Builder {
   }
 
   def make(tag: String): Engine => VNode = {
-    import cats.instances.all._
-    import cats.syntax.all._
-
     import js.JSConverters._
 
-    makeClassNameString.foreach(this.updateAttribute("class", _))
+    val classAttributes: js.Dictionary[Boolean | String] =
+      makeClassNameString
+        .map { str =>
+          val atts: Map[String, Boolean | String] = this.attributes.toMap +
+            ("class" -> str)
+          atts.toJSDictionary
+        }
+        .getOrElse(this.attributes)
 
-    val renderedChildren: Array[(Engine) => VNode] = children.map(_.render)
+    val renderedChildren: Array[Engine => VNode] = children.map(_.render)
 
     engine =>
       val jsChildren = renderedChildren.map(_(engine)).toJSArray
@@ -93,7 +101,6 @@ class Builder {
             vnode.elm.toOption.foreach(n => f(n.asInstanceOf[dom.Node]))
           }
         },
-
         destroy = (vnode: VNode) => {
           sinkUnSetter.foreach { f =>
             vnode.elm.toOption.foreach(n => f(n.asInstanceOf[dom.Node]))
@@ -102,7 +109,7 @@ class Builder {
       )
 
       val data = js.Dynamic.literal(
-        attrs = attributes,
+        attrs = classAttributes,
         props = properties,
         style = this.style,
         on = handlersWithoutOn,

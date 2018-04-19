@@ -12,6 +12,8 @@ import scalatags.generic._
 import scalatags.hokko.{Builder, DomPatcher, Property}
 import scalatags.stylesheet.{StyleSheetFrag, StyleTree}
 
+import scala.scalajs.js.JSON
+
 /**
   * A Scalatags module that generates `Description[VNode]`s when the tags are
   * rendered.
@@ -80,8 +82,7 @@ object Hokko
         nameSpaceConfig: Namespace): TypedTag[T] =
       TypedTag(tag, Nil, void)
 
-    implicit class SeqFrag[A](xs: Seq[A])(implicit ev: A => Frag)
-        extends Frag {
+    implicit class SeqFrag[A](xs: Seq[A])(implicit ev: A => Frag) extends Frag {
       Objects.requireNonNull(xs)
 
       def applyTo(t: hokko.Builder): Unit = xs.foreach(_.applyTo(t))
@@ -96,9 +97,7 @@ object Hokko
   }
 
   trait Aggregate
-      extends generic.Aggregate[hokko.Builder,
-                                Engine => VNode,
-                                Engine => VNode] {
+      extends generic.Aggregate[hokko.Builder, Engine => VNode, Engine => VNode] {
     implicit def ClsModifier(s: stylesheet.Cls): Modifier = new Modifier {
       def applyTo(t: hokko.Builder) = {
         t.addClassName(s.name)
@@ -110,8 +109,7 @@ object Hokko
       def applyTo(c: StyleTree) = {
         val b = new hokko.Builder
         s.applyTo(b)
-        val escapedStyles = b.style.mapValues(v => s" $v;")
-        c.copy(styles = c.styles ++ escapedStyles)
+        c.copy(styles = c.styles ++ b.escapedStyle)
       }
     }
 
@@ -176,10 +174,9 @@ object Hokko
     def apply(s: Style, v: T) = StylePair(s, v + "px", ev)
   }
 
-  case class TypedTag[Output <: Engine => VNode](
-      tag: String = "",
-      modifiers: List[Seq[Modifier]],
-      void: Boolean = false)
+  case class TypedTag[Output <: Engine => VNode](tag: String = "",
+                                                 modifiers: List[Seq[Modifier]],
+                                                 void: Boolean = false)
       extends generic.TypedTag[hokko.Builder, Output, Engine => VNode]
       with hokko.Frag {
 
@@ -196,7 +193,12 @@ object Hokko
     }
 
     override def toString = {
-      new DomPatcher(render(Engine.compile())).parent.innerHTML
+      val node = render(Engine.compile())
+      val copiedNode: VNode = JSON
+        .parse(JSON.stringify(node))
+        .asInstanceOf[VNode]
+
+      new DomPatcher(copiedNode, None).parent.innerHTML
     }
 
   }

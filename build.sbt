@@ -2,9 +2,9 @@ resolvers in ThisBuild += "Sonatype OSS Snapshots" at
   "https://oss.sonatype.org/content/repositories/snapshots"
 
 organization in ThisBuild := "be.tzbob"
-scalaVersion in ThisBuild := "2.12.1"
-crossScalaVersions in ThisBuild := Seq("2.11.8", "2.12.1")
-version in ThisBuild := "0.3.1-SNAPSHOT"
+scalaVersion in ThisBuild := "2.12.4"
+crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.4")
+version in ThisBuild := "0.3.5-SNAPSHOT"
 
 scalacOptions in ThisBuild ++= Seq(
   "-encoding",
@@ -16,7 +16,8 @@ scalacOptions in ThisBuild ++= Seq(
   "-Ywarn-dead-code",
   "-Ywarn-numeric-widen",
   "-Ywarn-value-discard",
-  "-language:higherKinds"
+  "-language:higherKinds",
+  "-Ypartial-unification"
 )
 
 lazy val publishSettings = Seq(
@@ -61,22 +62,22 @@ lazy val hokko =
       requiresDOM in Test := true,
       scalaJSModuleKind := ModuleKind.CommonJSModule,
       libraryDependencies ++= Seq(
-        "be.tzbob"      %%% "hokko"             % "0.4.2-SNAPSHOT",
-        "be.tzbob"      %%% "scala-js-snabbdom" % "0.2.0",
-        "org.typelevel" %%% "cats"              % "0.9.0",
+        "biz.enef"      %%% "slogging"    % "0.5.3",
+        "be.tzbob"      %%% "hokko"             % "0.4.8-SNAPSHOT",
+        "be.tzbob"      %%% "scala-js-snabbdom" % "0.4.0",
+        "org.typelevel" %%% "cats-core"         % "1.0.1",
         "com.lihaoyi"   %%% "scalatags"         % "0.6.3",
         "com.lihaoyi"   %%% "utest"             % "0.4.5" % "test"
       ),
       testFrameworks += new TestFramework("utest.runner.Framework"),
-      useYarn := true,
-      enableReloadWorkflow := true
+      useYarn := true
     )
     .enablePlugins(ScalaJSPlugin)
     .enablePlugins(ScalaJSBundlerPlugin)
 
 lazy val examples =
   Project(id = "examples", base = file("modules/examples"))
-    .settings(persistLauncher := true,
+    .settings(scalaJSUseMainModuleInitializer := true,
               scalaJSModuleKind := ModuleKind.CommonJSModule)
     .dependsOn(hokko)
     .enablePlugins(ScalaJSPlugin)

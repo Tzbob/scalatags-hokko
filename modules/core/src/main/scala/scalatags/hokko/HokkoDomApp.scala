@@ -9,7 +9,7 @@ trait HokkoDomApp extends JSApp {
   lazy val htmldsl   = scalatags.Hokko.all
   lazy val extraHtml = scalatags.Hokko.tags2
 
-  type Html = htmldsl.Tag
+  type Html = htmldsl.Frag
 
   def initialize(): dom.Element = {
     val engine     = Engine.compile(ui, ui.changes)
@@ -26,8 +26,6 @@ trait HokkoDomApp extends JSApp {
   }
 
   def main(): Unit = {
-    println("Starting App")
-
     def start(): Unit = {
       val element = this.initialize()
       this.container.appendChild(element)
