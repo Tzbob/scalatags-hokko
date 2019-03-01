@@ -3,8 +3,7 @@ resolvers in ThisBuild += "Sonatype OSS Snapshots" at
 
 organization in ThisBuild := "be.tzbob"
 scalaVersion in ThisBuild := "2.12.4"
-crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.4")
-version in ThisBuild := "0.3.5-SNAPSHOT"
+version in ThisBuild := "0.4.0"
 
 scalacOptions in ThisBuild ++= Seq(
   "-encoding",
@@ -63,7 +62,7 @@ lazy val hokko =
       scalaJSModuleKind := ModuleKind.CommonJSModule,
       libraryDependencies ++= Seq(
         "biz.enef"      %%% "slogging"    % "0.5.3",
-        "be.tzbob"      %%% "hokko"             % "0.4.8-SNAPSHOT",
+        "be.tzbob"      %%% "hokko"             % "0.5.0",
         "be.tzbob"      %%% "scala-js-snabbdom" % "0.4.0",
         "org.typelevel" %%% "cats-core"         % "1.0.1",
         "com.lihaoyi"   %%% "scalatags"         % "0.6.3",

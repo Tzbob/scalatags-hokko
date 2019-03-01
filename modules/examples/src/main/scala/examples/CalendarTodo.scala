@@ -19,9 +19,9 @@ object CalendarTodo extends HokkoDomApp {
   val delete = Event.source[Int]
 
   val submissions: Event[Either[Entry, Int]] =
-    entry.sampledBy(submit).map(Left.apply)
+    entry.sampledBy(submit: Event[Any]).map(Left.apply)
   val deletions: Event[Either[Entry, Int]] =
-    delete.map(Right.apply)
+    (delete: Event[Int]).map(Right.apply)
 
   val todoList = submissions
     .unionLeft(deletions)
